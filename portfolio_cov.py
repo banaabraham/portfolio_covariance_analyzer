@@ -32,8 +32,10 @@ def analyze(dow,n,return_dict):
     return_dict[tick] =[a,count]        
 
 #dow 30 list stocks
-dow="amzn aapl ba cat csco cvx dd dis fitb ge goog gs hd ibm intc jnj jpm ko mcd mmm mrk pfe pg trv tsla unh v vz wfc wmt xom yhoo"
-dow=dow.split(" ")
+#dow="amzn aapl ba cat csco cvx dd dis fitb ge goog gs hd ibm intc jnj jpm ko mcd mmm mrk pfe pg trv tsla unh v vz wfc wmt xom yhoo"
+#dow=dow.split(" ")
+f = open("SP100.txt","r")
+dow = [x.strip("\n") for x in f.readlines()]
 stock_dict={}
 portfolio=[]
 CVs=[]
@@ -44,24 +46,30 @@ for ticker in dow:
     try:
         d=pd.read_csv(stock)
     except:
-        url="https://www.google.com/finance/historical?output=csv&q="+ticker
-        urllib.request.urlretrieve(url,stock)
-        d=pd.read_csv(stock)
+        try:
+            url="https://www.google.com/finance/historical?output=csv&q="+ticker
+            urllib.request.urlretrieve(url,stock)
+            d=pd.read_csv(stock)
+        except:
+            pass    
     data = d['Close'].values
     #calculate monthly return
     mth_return = []  
-    for i in range(0,len(data)-30,30):
-        mth_return.append((data[i+30]-data[i])/data[i])
+    for i in range(len(data)-1,0,-30):
+        mth_return.append((data[i]-data[i-30])/data[i-30])
     #calculating risk and covariance 
     resiko = statistics.stdev(mth_return)
-    stock_dict[ticker] = float(resiko/(mth_return[-1]**2))
-
+    laba=(data[0]-data[-1])/data[-1]
+    if laba<0:
+        stock_dict[ticker] = 10000.0
+    else:    
+        stock_dict[ticker] = float(resiko/(laba**2))
     
 if __name__ == '__main__':
     
     manager = Manager()
     return_dict = manager.dict()
-    n=list(range(3,8))
+    n=list(range(3,5))
     #calculating average covariance of the combinations of stocks using multi process
     thread=[]
     for i in n:
@@ -81,8 +89,3 @@ if __name__ == '__main__':
     plt.plot(a)
     print (sum(b))   
     print (return_dict)
-       
-      
-        
-        
-        
